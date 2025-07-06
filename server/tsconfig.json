@@ -1,0 +1,10 @@
+{
+  "extends": "../shared/tsconfig",
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "incremental": true,
+  }
+}

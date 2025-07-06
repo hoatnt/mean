@@ -1,0 +1,9 @@
+{
+  "name": "@mean/client",
+  "version": "1.0.0",
+  "keywords": [],
+  "author": "hoatruong",
+  "dependencies": {
+    "@mean/shared": "workspace:*"
+  }
+}
