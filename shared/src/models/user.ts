@@ -1,5 +1,6 @@
 import { Column, Entity } from 'typeorm';
 import { Model } from "./model";
+import {HasName} from "./has-name";
 
 @Entity()
 export class User extends Model {
