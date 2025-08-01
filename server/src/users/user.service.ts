@@ -9,7 +9,7 @@ export class UserService extends RestService<User> {
 
   constructor(@InjectRepository(User)
               private readonly usersRepository: MongoRepository<User>) {
-    super(usersRepository);
+    super(User, usersRepository);
   }
 
 }

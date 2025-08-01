@@ -1,6 +1,6 @@
 import { User } from "./user";
 import {Column, Entity, ManyToOne, ObjectId, ObjectIdColumn} from "typeorm";
-import Reflect from "reflect-metadata"
+import "reflect-metadata";
 
 @Entity()
 export class Model {

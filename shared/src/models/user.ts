@@ -1,18 +1,12 @@
 import { Column, Entity } from 'typeorm';
 import { Model } from "./model";
-import {HasName} from "./has-name";
+import {NameFields} from "../fields/name";
 
 @Entity()
 export class User extends Model {
 
-    @Column()
-    first_name: string;
-
-    @Column()
-    middle_name: string;
-
-    @Column()
-    last_name: string;
+    @Column(() => NameFields)
+    name: NameFields;
 
     @Column()
     active: boolean;
