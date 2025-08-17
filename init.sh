@@ -215,7 +215,3 @@ cat << EOF > shared/tsconfig.json
 EOF
 
 ln -sf "../mean/shared/eslint.config.mjs" "shared/eslint.config.mjs"
-
-ln -sf "../mean/client/eslint.config.mjs" "client/eslint.config.mjs"
-ln -sf "../mean/server/eslint.config.mjs" "server/eslint.config.mjs"
-ln -sf "../mean/shared/eslint.config.mjs" "shared/eslint.config.mjs"
