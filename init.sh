@@ -70,6 +70,8 @@ cat << EOF > client/tsconfig.json
 }
 EOF
 
+ln -sf "../mean/client/eslint.config.mjs" "client/eslint.config.mjs"
+
 # Create server directory and files
 mkdir -p server/src
 cat << EOF > server/package.json
@@ -191,6 +193,8 @@ export class AppModule extends MeanModule {
 }
 EOF
 
+ln -sf "../mean/server/eslint.config.mjs" "server/eslint.config.mjs"
+
 # Create shared directory and files
 mkdir -p shared
 cat << EOF > shared/package.json
@@ -210,4 +214,8 @@ cat << EOF > shared/tsconfig.json
 }
 EOF
 
-echo "${APP_NAME} initialized."
+ln -sf "../mean/shared/eslint.config.mjs" "shared/eslint.config.mjs"
+
+ln -sf "../mean/client/eslint.config.mjs" "client/eslint.config.mjs"
+ln -sf "../mean/server/eslint.config.mjs" "server/eslint.config.mjs"
+ln -sf "../mean/shared/eslint.config.mjs" "shared/eslint.config.mjs"
