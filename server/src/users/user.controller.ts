@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import {Controller, Inject} from '@nestjs/common';
 import { RestController } from '../common/rest.controller';
 import { UserService } from './user.service';
 import {User} from "@mean/shared/src/models/user";

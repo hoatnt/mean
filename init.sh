@@ -151,6 +151,19 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
   const configService = app.get(ConfigService);
 
+  const corsAllowedOriginsString = configService.get<string>('CORS_ALLOWED_ORIGINS');
+  const corsAllowedOrigins = corsAllowedOriginsString
+    ? corsAllowedOriginsString.split(',').map(origin => origin.trim()).filter(origin => origin.length > 0)
+    : [];
+
+  app.enableCors({
+    origin: corsAllowedOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Authorization',
+    credentials: true,
+    maxAge: 86400,
+  });
+
   await app.listen(configService.get<number>('PORT') || 3000);
   Logger.log(`Application is running on: \${await app.getUrl()}`);
 }

@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { User } from "direct-lending-shared/src/models/user";
+import { User } from "@mean/shared/src/models/user";
 import { ConfigService } from "@nestjs/config";
 import { createPrivateKey, createPublicKey, KeyObject } from "crypto";
 

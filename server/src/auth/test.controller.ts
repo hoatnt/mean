@@ -1,7 +1,7 @@
 import { Controller, Post } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import { User } from "direct-lending-shared/src/models/user";
 import { Public } from "./auth.guard";
+import {User} from "@mean/shared/src/models/user";
 
 @Controller("test")
 export class TestController {
@@ -12,8 +12,10 @@ export class TestController {
   async token(): Promise<{}> {
     return {
       token: await this.authService.createToken({
-        first_name: "Hi",
-        last_name: "User",
+        name:{
+          first: "Hi",
+          last: "User",
+        }
       } as User),
     };
   }
