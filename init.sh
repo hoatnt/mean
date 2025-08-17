@@ -39,9 +39,11 @@ cat << EOF > package.json
     "client"
   ],
   "scripts": {
-    "build-all": "yarn workspaces run build",
-    "test-all": "yarn workspaces run test",
-    "clean-all": "rm -rf node_modules mean/*/node_modules ./*/node_modules"
+    "build-all": "yarn workspaces foreach -A run build",
+    "test-all": "yarn workspaces foreach -A run test",
+    "clean-all": "rm -rf node_modules mean/*/node_modules ./*/node_modules",
+    "lint-all": "yarn workspaces foreach -A run lint",
+    "lint-all:fix": "yarn workspaces foreach -A run lint --fix"
   },
   "packageManager": "yarn@4.9.2"
 }
