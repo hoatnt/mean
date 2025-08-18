@@ -6,5 +6,8 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "incremental": true,
+    "paths": {
+      "@mean/shared/*": ["../shared/src/*"]
+    },
   }
 }

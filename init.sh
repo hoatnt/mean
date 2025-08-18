@@ -66,7 +66,15 @@ cat << EOF > client/package.json
 EOF
 cat << EOF > client/tsconfig.json
 {
-  "extends": "../mean/client/tsconfig"
+  "extends": "../mean/client/tsconfig",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@mean/shared/*": ["../mean/shared/src/*"],
+      "@mean/client/*": ["../mean/client/src/*"],
+      "${APP_NAME_KEBAB}-shared/*": ["../shared/src/*"]
+    }
+  }
 }
 EOF
 
@@ -103,7 +111,12 @@ cat << EOF > server/tsconfig.json
   "extends": "../mean/server/tsconfig",
   "compilerOptions": {
     "outDir": "./dist",
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "paths": {
+      "@mean/shared/*": ["../mean/shared/src/*"],
+      "@mean/server/*": ["../mean/server/src/*"],
+      "${APP_NAME_KEBAB}-shared/*": ["../shared/src/*"]
+    }
   }
 }
 EOF
@@ -210,7 +223,13 @@ cat << EOF > shared/package.json
 EOF
 cat << EOF > shared/tsconfig.json
 {
-  "extends": "../mean/shared/tsconfig"
+  "extends": "../mean/shared/tsconfig",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@mean/shared/*": ["../mean/shared/src/*"]
+    }
+  }
 }
 EOF
 

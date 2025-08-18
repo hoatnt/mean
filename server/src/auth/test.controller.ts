@@ -1,7 +1,7 @@
 import { Controller, Post } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { Public } from "./auth.guard";
-import {User} from "@mean/shared/src/models/user";
+import {User} from "@mean/shared/models/user";
 
 @Controller("test")
 export class TestController {

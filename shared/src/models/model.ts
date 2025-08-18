@@ -5,7 +5,7 @@ import "reflect-metadata";
 @Entity()
 export class Model {
   @ObjectIdColumn()
-  _id: ObjectId;
+  _id: string;
 
   @Column()
   created_at: Date;

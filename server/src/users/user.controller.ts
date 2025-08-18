@@ -1,7 +1,7 @@
 import {Controller, Inject} from '@nestjs/common';
 import { RestController } from '../common/rest.controller';
 import { UserService } from './user.service';
-import {User} from "@mean/shared/src/models/user";
+import {User} from "@mean/shared/models/user";
 
 @Controller('users')
 export class UserController extends RestController<User> {

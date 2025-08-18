@@ -1,7 +1,7 @@
 import {Injectable} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {RestService} from '../common/rest.service';
-import {User} from '@mean/shared/src/models/user';
+import {User} from '@mean/shared/models/user';
 import {MongoRepository} from "typeorm/repository/MongoRepository";
 
 @Injectable()

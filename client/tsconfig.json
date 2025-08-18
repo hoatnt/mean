@@ -2,7 +2,7 @@
   "extends": "../shared/tsconfig",
   "compilerOptions": {
     "paths": {
-      "typeorm": ["./node_modules/typeorm/typeorm-model-shim.js"]
+      "@mean/shared/*": ["../shared/src/*"]
     }
   }
 }
