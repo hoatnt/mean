@@ -1,12 +1,18 @@
-import { DeleteResult, FindOptionsOrder } from "typeorm";
-import { ObjectId } from "mongodb";
-import { MongoRepository } from "typeorm/repository/MongoRepository";
-import { MongoFindManyOptions } from "typeorm/find-options/mongodb/MongoFindManyOptions";
-import {Model, TIMESTAMP_FIELDS_KEY} from "@mean/shared/src/models/model";
+import { DeleteResult } from 'typeorm';
+import { ObjectId } from 'mongodb';
+import { MongoRepository } from 'typeorm/repository/MongoRepository';
+import { MongoFindManyOptions } from 'typeorm/find-options/mongodb/MongoFindManyOptions';
+import { FindOptionsOrder } from 'typeorm/find-options/FindOptionsOrder';
+import { FindOneOptions } from 'typeorm/find-options/FindOneOptions';
+import { ObjectLiteral } from 'typeorm/common/ObjectLiteral';
+import {Model} from "@mean/shared/src/models/model";
+import {History, Change} from "@mean/shared/src/models/history";
+import {StringUtils} from "@mean/shared/src/utils/string-utils";
+import {TRACK_FIELDS_KEY} from "@mean/shared/src/decorators/track";
+import {ITEM_TYPE} from "@mean/shared/src/decorators/item-type";
+import {TIMESTAMP_FIELDS_KEY} from "@mean/shared/src/decorators/timestamp";
 
-export type ListParams<M> = {
-  [key in keyof M]: any;
-} & {
+export type ListParams<M> = Partial<Record<keyof M, any>> & {
   page: number;
   perPage: number;
   order: string;
@@ -15,43 +21,39 @@ export type ListParams<M> = {
 export abstract class RestService<M extends Model> {
   protected constructor(
     private EntityClass: new () => M,
-    private mongoRepository: MongoRepository<M>,
+    private mongoRepository: MongoRepository<M>
   ) {}
 
-  async list(query: ListParams<M>): Promise<[M[], number | null]> {
+  async list(query: Partial<ListParams<M>>): Promise<[M[], number | null]> {
+    const order =
+      query.order &&
+      ((query.order.charAt(0) === '-'
+        ? {
+          [query.order.substring(1)]: 'desc'
+        }
+        : {
+          [query.order]: 'asc'
+        }) as FindOptionsOrder<M>);
+
+    const excludedKeys = ['page', 'perPage', 'order'];
+    let where = {};
+
+    Object.keys(query).forEach((key) => {
+      if (!excludedKeys.includes(key) && query[key] !== undefined && query[key] !== null) {
+        where[key] = query[key];
+      }
+    });
+
+    if (Object.keys(where).length > 0) {
+      where = correctDataTypes(where as M, this.EntityClass);
+    }
+
     const take: number = Number(query.perPage) || 10;
     const skip: number = (Number(query.page) || 0) * take;
-
-    const findOptions: MongoFindManyOptions<M> = {
-      skip,
-      take,
-    };
-
-    if (query.order) {
-      findOptions.order = (
-        query.order.charAt(0) === "-"
-          ? {
-            [query.order.substring(1)]: "desc",
-          }
-          : {
-            [query.order]: "asc",
-          }
-      ) as FindOptionsOrder<M>;
-    }
-
-    const whereConditions = buildWhereClause(query);
-
-    if (Object.keys(whereConditions).length > 0) {
-      findOptions.where = correctDataTypes(
-        whereConditions as M,
-        this.EntityClass,
-      );
-    }
-
     if (skip === 0) {
-      return this.mongoRepository.findAndCount(findOptions);
+      return this.mongoRepository.findAndCount(this.createFindOptions(where, order, skip, take));
     } else {
-      return [await this.mongoRepository.find(findOptions), null];
+      return [await this.find(where, order, skip, take), null];
     }
   }
 
@@ -61,39 +63,23 @@ export abstract class RestService<M extends Model> {
   }
 
   async create(item: M): Promise<M> {
-    return this.mongoRepository.save(correctDataTypes(item, this.EntityClass));
+    const creating = correctDataTypes(item, this.EntityClass);
+    await this.beforeCreate(creating);
+    await this.beforeSave({} as M, creating);
+    return this.save(creating, 'Create', {} as M);
   }
-
-  async beforeSave(current: M, updating: M): Promise<void> {}
 
   async replace(id: string, item: M): Promise<M> {
     let _id: ObjectId = new ObjectId(id);
-    const current = await this.mongoRepository.findOneBy({ _id });
-    const updating = correctDataTypes(item, this.EntityClass);
-
-    await this.beforeSave(current, updating);
-
-    const doc = this.mongoRepository.create({ _id, ...updating });
-    await this.mongoRepository.replaceOne(
-      {
-        _id,
-      },
-      doc,
-    );
-    return doc;
+    return this.save({ _id, ...correctDataTypes(item, this.EntityClass) }, 'Replace');
   }
 
   async update(id: string, item: M): Promise<M> {
     let _id: ObjectId = new ObjectId(id);
     const current = await this.mongoRepository.findOneBy({ _id });
-    const updating = correctDataTypes(
-      { ...current, ...item },
-      this.EntityClass,
-    );
+    const updating = correctDataTypes({ ...current, ...item }, this.EntityClass);
 
-    await this.beforeSave(current, updating);
-
-    return this.mongoRepository.save(updating);
+    return this.save(updating, 'Edit', current);
   }
 
   async delete(id: string): Promise<boolean> {
@@ -101,83 +87,207 @@ export abstract class RestService<M extends Model> {
     return !!result.affected;
   }
 
-  async getByIds(ids: string[]): Promise<M[]> {
-    let _ids: ObjectId[] = ids.map((id) => new ObjectId(id));
-    return this.mongoRepository.find({
-      where: {
-        _id: { $in: _ids },
-      },
+  async count(query: Partial<Record<keyof M, any>>): Promise<number> {
+    let whereConditions = {};
+    Object.keys(query).forEach((key) => {
+      if (query[key] !== undefined && query[key] !== null) {
+        whereConditions[key] = query[key];
+      }
     });
+
+    if (Object.keys(whereConditions).length > 0) {
+      whereConditions = correctDataTypes(whereConditions as M, this.EntityClass);
+    }
+
+    return this.mongoRepository.countBy(whereConditions);
   }
-}
 
-function buildWhereClause(query: { [key: string]: any }): { [key: string]: any } {
-  const whereClause: { [key: string]: any } = {};
+  async createMany(items: M[]): Promise<M[]> {
+    const createdItems = await this.mongoRepository.save(
+      await Promise.all(
+        items.map(async (item) => {
+          const creating = correctDataTypes(item, this.EntityClass);
+          await this.beforeCreate(creating);
+          await this.beforeSave({} as M, creating);
+          return creating;
+        })
+      )
+    );
 
-  const excludedKeys = ["page", "perPage", "order"];
-  for (const key in query) {
-    if (!excludedKeys.includes(key) && query[key] !== undefined && query[key] !== null
-      && Object.prototype.hasOwnProperty.call(query, key)) {
-      const value = query[key];
-      const parts = key.split('.');
-
-      let currentLevel = whereClause;
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-
-        if (i === parts.length - 1) {
-          currentLevel[part] = value;
-        } else {
-          if (!currentLevel[part] || typeof currentLevel[part] !== 'object') {
-            currentLevel[part] = {};
-          }
-          currentLevel = currentLevel[part];
+    const histories = createdItems
+      .map((item) => {
+        const changes: Change[] = this.composeChange(item, {} as M);
+        if (changes.length > 0) {
+          const history = new History();
+          history.action = 'Create';
+          history.container = StringUtils.uniqueKey(this.EntityClass, item._id);
+          return history;
         }
+        return null;
+      })
+      .filter(Boolean);
+    if (histories) {
+      this.mongoRepository.manager.save(histories).then(() => {});
+    }
+    return createdItems;
+  }
+
+  async beforeCreate(_updating: M): Promise<void> {}
+
+  async beforeSave(_current: M, _updating: M): Promise<void> {}
+
+  private async save(updating: M, action: string = 'Edit', current?: M): Promise<M> {
+    if (current === undefined && updating._id) {
+      current = (await this.mongoRepository.findOneBy({ _id: updating._id })) || ({} as M);
+    }
+
+    await this.beforeSave({ ...current }, updating);
+
+    const changes: Change[] = this.composeChange(updating, current);
+
+    if (changes.length > 0) {
+      const history = new History();
+      history.action = action;
+      history.changes = changes;
+
+      if (updating._id) {
+        history.container = StringUtils.uniqueKey(this.EntityClass, updating._id);
+        return (await this.mongoRepository.manager.save([Object.assign(new this.EntityClass(), updating), history]))[0] as M;
+      } else {
+        const result = await this.mongoRepository.save(updating);
+        history.container = StringUtils.uniqueKey(this.EntityClass, result._id);
+        this.mongoRepository.manager.save([history]).then(() => {});
+        return result;
       }
     }
+
+    return this.mongoRepository.save(updating);
   }
-  return whereClause;
+
+  private composeChange(updating: M, current: M): Change[] {
+    const changes: Change[] = [];
+    const trackFields = Reflect.getMetadata(TRACK_FIELDS_KEY, this.EntityClass) || [];
+
+    for (const field of trackFields) {
+      const currentValue = JSON.stringify(current[field]);
+      const updatingValue = JSON.stringify(updating[field]);
+
+      if (currentValue !== updatingValue) {
+        changes.push({
+          _: field,
+          f: currentValue,
+          t: updatingValue
+        });
+      }
+    }
+
+    return changes;
+  }
+
+  async getByIds(ids: string[]): Promise<M[]> {
+    let _ids: ObjectId[] = ids.map((id) => new ObjectId(id));
+    return this.find({
+      where: {
+        _id: { $in: _ids }
+      }
+    });
+  }
+
+  async retrieveOptions(field: keyof M, query: Partial<Record<keyof M, any>>): Promise<any[]> {
+    const whereConditions = {};
+
+    Object.keys(query).forEach((key) => {
+      if (query[key] !== undefined && query[key] !== null) {
+        whereConditions[key] = query[key];
+      }
+    });
+
+    const filter = Object.keys(whereConditions).length > 0 ? correctDataTypes(whereConditions as M, this.EntityClass) : {};
+
+    return this.mongoRepository.distinct(field as string, filter);
+  }
+
+  async find(where?: FindOneOptions<M>['where'] | ObjectLiteral, order?: FindOptionsOrder<M>, skip?: number, take?: number): Promise<M[]> {
+    return this.mongoRepository.find(this.createFindOptions(where, order, skip, take));
+  }
+
+  private createFindOptions(
+    where: FindOneOptions<M>['where'] | ObjectLiteral = {},
+    order?: FindOptionsOrder<M>,
+    skip?: number,
+    take?: number
+  ): MongoFindManyOptions<M> {
+    const findOptions: MongoFindManyOptions<M> = {};
+
+    findOptions.where = where;
+
+    if (order) {
+      findOptions.order = order;
+    }
+
+    if (skip) {
+      findOptions.skip = skip;
+    }
+    if (take) {
+      findOptions.take = take;
+    }
+
+    return findOptions;
+  }
 }
 
-export function correctDataTypes<T extends Model>(
-  entity: T,
-  EntityClass: new () => T,
-): T {
-  const instance = new EntityClass();
+export function correctDataTypes<M extends Model>(entity: M, EntityClass: new () => M): M {
+  const clazz = new EntityClass();
+  const result = {} as M;
 
-  Object.getOwnPropertyNames(entity).forEach((fieldName) => {
+  const toNumber = (numberStr: string) => {
+    const numValue = Number(numberStr);
+    return isNaN(numValue) ? undefined : numValue;
+  };
+
+  const toBoolean = (booleanStr: string) => booleanStr.toLowerCase() === 'true' || booleanStr === '1';
+
+  Object.getOwnPropertyNames(clazz).forEach((fieldName) => {
     const value = entity[fieldName];
 
-    if (value !== null && value !== undefined) {
-      if (typeof value === "string") {
-        const designType = Reflect.getMetadata("design:type", instance, fieldName);
+    if (value !== undefined) {
+      if (Array.isArray(value)) {
+        const designType = Reflect.getMetadata(ITEM_TYPE, clazz, fieldName);
+        const fn = designType === Number ? toNumber : designType === Boolean ? toBoolean : undefined;
+        if (fn) {
+          result[fieldName] = value.map((v) => (typeof v === 'string' ? fn(v) : v));
+          return;
+        }
+      } else if (typeof value === 'string') {
+        let designType = Reflect.getMetadata('design:type', clazz, fieldName);
+        if (designType === Array) {
+          designType = Reflect.getMetadata(ITEM_TYPE, clazz, fieldName);
+        }
 
-        if (!designType) return;
         if (designType === Number) {
-          const numValue = Number(value);
-          if (!isNaN(numValue)) {
-            entity[fieldName] = numValue;
+          const numValue = toNumber(value);
+          if (numValue !== undefined) {
+            result[fieldName] = numValue;
+            return;
           }
         } else if (designType === Boolean) {
-          entity[fieldName] = value.toLowerCase() === "true" || value === "1";
-        }
-      } else if (typeof value === "object" && !Array.isArray(value) && !(value instanceof Date) && !(value instanceof ObjectId)) {
-        const designType = Reflect.getMetadata("design:type", instance, fieldName);
-
-        if (designType && designType !== Object) {
-          entity[fieldName] = correctDataTypes(value, designType);
+          result[fieldName] = toBoolean(value);
+          return;
         }
       }
+
+      result[fieldName] = value;
     }
   });
 
   const timestampFields = Reflect.getMetadata(TIMESTAMP_FIELDS_KEY, EntityClass) || [];
+
   timestampFields.forEach((fieldName: string) => {
-    const value = entity[fieldName];
-    if (value && typeof value === "string") {
-      entity[fieldName] = new Date(value);
+    const value = result[fieldName];
+    if (value && typeof value === 'string') {
+      result[fieldName] = new Date(value);
     }
   });
 
-  return entity as T;
+  return result as M;
 }
