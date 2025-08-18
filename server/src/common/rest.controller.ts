@@ -53,11 +53,6 @@ export abstract class RestController<M extends Model> {
     res.status((await this.service.delete(id)) ? HttpStatus.NO_CONTENT : HttpStatus.NOT_FOUND).send();
   }
 
-  @Get('count')
-  async count(@Query() query: Partial<Record<keyof M, any>>): Promise<number> {
-    return this.service.count(query);
-  }
-
   async optionFromIds<K extends Model>(
     ids: string[],
     service: RestService<K>,
