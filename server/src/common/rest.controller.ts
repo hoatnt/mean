@@ -12,7 +12,8 @@ import {
   Res,
 } from "@nestjs/common";
 import { Response } from "express";
-import {Model} from "@mean/shared/src/models/model";
+import {Model} from '@mean/shared/src/models/model';
+import {OptionsResult} from '@mean/shared/src/api-props/options-result';
 
 export abstract class RestController<M extends Model> {
   protected constructor(readonly service: RestService<M>) {}

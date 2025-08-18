@@ -43,12 +43,28 @@ export default [
     },
     rules: {
       // ✅ Prettier
-      'prettier/prettier': 'warn',
+      'prettier/prettier': [
+        'warn',
+        {
+          bracketSpacing: true,
+          printWidth: 140,
+          singleQuote: true,
+          trailingComma: 'none',
+          tabWidth: 2,
+          useTabs: false
+        }
+      ],
       quotes: ['warn', 'single'],
       semi: ['warn', 'always'],
       indent: 'off', // Prettier handles indentation.
 
       // ✅ TypeScript
+      'no-param-reassign': 'off',
+      'no-shadow': 'off',
+      '@typescript-eslint/naming-convention': 'off',
+      '@typescript-eslint/no-shadow': 'off',
+      '@typescript-eslint/interface-name-prefix': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
@@ -85,7 +101,21 @@ export default [
       'import/no-unresolved': 'error',
       'import/no-duplicates': 'error',
       'import/first': 'error',
+      'import/no-cycle': 'off',
+      'import/no-extraneous-dependencies': 'off',
       'import/newline-after-import': ['warn', { count: 1 }],
+      'no-unused-vars': 'off',
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          ignoreRestSiblings: true
+        }
+      ],
 
       // ✅ General
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'log'] }],

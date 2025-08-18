@@ -6,11 +6,11 @@ import { FindOptionsOrder } from 'typeorm/find-options/FindOptionsOrder';
 import { FindOneOptions } from 'typeorm/find-options/FindOneOptions';
 import { ObjectLiteral } from 'typeorm/common/ObjectLiteral';
 import {Model} from "@mean/shared/src/models/model";
-import {History, Change} from "@mean/shared/src/models/history";
-import {StringUtils} from "@mean/shared/src/utils/string-utils";
-import {TRACK_FIELDS_KEY} from "@mean/shared/src/decorators/track";
-import {ITEM_TYPE} from "@mean/shared/src/decorators/item-type";
-import {TIMESTAMP_FIELDS_KEY} from "@mean/shared/src/decorators/timestamp";
+import {History, Change} from '@mean/shared/src/models/history';
+import {StringUtils} from '@mean/shared/src/utils/string-utils';
+import {TRACK_FIELDS_KEY} from '@mean/shared/src/decorators/track';
+import {ITEM_TYPE} from '@mean/shared/src/decorators/item-type';
+import {TIMESTAMP_FIELDS_KEY} from '@mean/shared/src/decorators/timestamp';
 
 export type ListParams<M> = Partial<Record<keyof M, any>> & {
   page: number;
