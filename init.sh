@@ -209,7 +209,7 @@ EOF
 ln -sf "../mean/server/eslint.config.mjs" "server/eslint.config.mjs"
 
 # Create shared directory and files
-mkdir -p shared
+mkdir -p shared/src/models
 cat << EOF > shared/package.json
 {
   "name": "${APP_NAME_KEBAB}-shared",
@@ -230,6 +230,22 @@ cat << EOF > shared/tsconfig.json
       "@mean/shared/*": ["../mean/shared/src/*"]
     }
   }
+}
+EOF
+
+cat << EOF > shared/src/models/Foo.ts
+import { Column, Entity } from 'typeorm';
+import { Model } from "@mean/shared/models/model";
+
+@Entity()
+export class Foo extends Model {
+
+  @Column()
+  foo: string;
+
+  @Column()
+  bar: string;
+
 }
 EOF
 
